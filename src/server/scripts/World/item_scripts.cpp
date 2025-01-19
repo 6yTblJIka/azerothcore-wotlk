@@ -20,6 +20,7 @@
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "Spell.h"
+#include "SpellMgr.h"
 
 /*#####
 # item_only_for_flight
@@ -223,4 +224,3 @@ void AddSC_item_scripts()
     new item_captured_frog();
     new item_generic_limit_chance_above_60();
 }
-

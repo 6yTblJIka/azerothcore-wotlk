@@ -259,7 +259,7 @@ class spell_suppression_aura : public SpellScript
         targets.remove_if([&](WorldObject* target) -> bool
         {
             Unit* unit = target->ToUnit();
-            return !unit || unit->HasAuraType(SPELL_AURA_MOD_STEALTH);
+            return !unit || unit->HasStealthAura();
         });
     }
 
@@ -275,4 +275,3 @@ void AddSC_boss_broodlord()
     new go_suppression_device();
     RegisterSpellScript(spell_suppression_aura);
 }
-

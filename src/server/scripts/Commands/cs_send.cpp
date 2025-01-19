@@ -79,7 +79,7 @@ public:
                     itemCount = *Acore::StringTo<uint32>(itemTokens.at(1));
                     break;
                 default:
-                    handler->SendSysMessage(Acore::StringFormatFmt("> Incorrect item list format for '{}'", itemString));
+                    handler->SendSysMessage(Acore::StringFormat("> Incorrect item list format for '{}'", itemString));
                     continue;
             }
 
@@ -179,7 +179,7 @@ public:
 
         /// - Send the message
         // Use SendAreaTriggerMessage for fastest delivery.
-        player->GetSession()->SendAreaTriggerMessage("%s", msg.c_str());
+        player->GetSession()->SendAreaTriggerMessage("{}", msg);
         player->GetSession()->SendAreaTriggerMessage("|cffff0000[Message from administrator]:|r");
 
         // Confirmation message

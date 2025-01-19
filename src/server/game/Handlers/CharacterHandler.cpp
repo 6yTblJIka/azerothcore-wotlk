@@ -53,7 +53,6 @@
 #include "StringConvert.h"
 #include "Tokenize.h"
 #include "Transport.h"
-#include "UpdateMask.h"
 #include "Util.h"
 #include "World.h"
 #include "WorldPacket.h"
@@ -215,6 +214,10 @@ bool LoginQueryHolder::Initialize()
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_PETS);
     stmt->SetData(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_PET_SLOTS, stmt);
+
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_ACHIEVEMENT_OFFLINE_UPDATES);
+    stmt->SetData(0, lowGuid);
+    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_OFFLINE_ACHIEVEMENTS_UPDATES, stmt);
 
     return res;
 }
@@ -827,7 +830,7 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
 
     // Send MOTD
     {
-        SendPacket(sMotdMgr->GetMotdPacket());
+        SendPacket(sMotdMgr->GetMotdPacket(pCurrChar->GetSession()->GetSessionDbLocaleIndex()));
 
         // send server info
         if (sWorld->getIntConfig(CONFIG_ENABLE_SINFO_LOGIN) == 1)
@@ -971,20 +974,24 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_SPELLS))
     {
         pCurrChar->resetSpells();
-        SendNotification(LANG_RESET_SPELLS);
+        ChatHandler(this).SendNotification(LANG_RESET_SPELLS);
     }
 
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_RESET_TALENTS))
     {
         pCurrChar->resetTalents(true);
         pCurrChar->SendTalentsInfoData(false);              // original talents send already in to SendInitialPacketsBeforeAddToMap, resend reset state
-        SendNotification(LANG_RESET_TALENTS);
+        ChatHandler(this).SendNotification(LANG_RESET_TALENTS);
     }
 
     if (pCurrChar->HasAtLoginFlag(AT_LOGIN_CHECK_ACHIEVS))
     {
-        pCurrChar->RemoveAtLoginFlag(AT_LOGIN_CHECK_ACHIEVS, true);
-        pCurrChar->CheckAllAchievementCriteria();
+        // If we process the check while players are loading they won't be notified of the changes.
+        pCurrChar->m_Events.AddEventAtOffset([pCurrChar]
+        {
+            pCurrChar->RemoveAtLoginFlag(AT_LOGIN_CHECK_ACHIEVS, true);
+            pCurrChar->CheckAllAchievementCriteria();
+        }, 1s);
     }
 
     bool firstLogin = pCurrChar->HasAtLoginFlag(AT_LOGIN_FIRST);
@@ -1044,7 +1051,7 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
         pCurrChar->SetTaxiCheater(true);
 
     if (pCurrChar->IsGameMaster())
-        SendNotification(LANG_GM_ON);
+        ChatHandler(this).SendNotification(LANG_GM_ON);
 
     std::string IP_str = GetRemoteAddress();
     LOG_INFO("entities.player", "Account: {} (IP: {}) Login Character:[{}] ({}) Level: {}",
@@ -1061,7 +1068,7 @@ void WorldSession::HandlePlayerLoginFromDB(LoginQueryHolder const& holder)
     // Xinef: fix vendors falling of player vehicle, due to isBeingLoaded checks
     if (pCurrChar->IsInWorld())
     {
-        if (pCurrChar->GetMountBlockId() && !pCurrChar->HasAuraType(SPELL_AURA_MOUNTED))
+        if (pCurrChar->GetMountBlockId() && !pCurrChar->HasMountedAura())
         {
             pCurrChar->CastSpell(pCurrChar, pCurrChar->GetMountBlockId(), true);
             pCurrChar->SetMountBlockId(0);
@@ -1146,7 +1153,7 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
 
     // Send MOTD
     {
-        SendPacket(sMotdMgr->GetMotdPacket());
+        SendPacket(sMotdMgr->GetMotdPacket(pCurrChar->GetSession()->GetSessionDbLocaleIndex()));
 
         // send server info
         if (sWorld->getIntConfig(CONFIG_ENABLE_SINFO_LOGIN) == 1)
@@ -1239,7 +1246,7 @@ void WorldSession::HandlePlayerLoginToCharInWorld(Player* pCurrChar)
         sWorld->ShutdownMsg(true, pCurrChar);
 
     if (pCurrChar->IsGameMaster())
-        SendNotification(LANG_GM_ON);
+        ChatHandler(pCurrChar->GetSession()).SendNotification(LANG_GM_ON);
 
     m_playerLoading = false;
 }

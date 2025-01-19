@@ -117,7 +117,7 @@ public:
         uint8 powerType = classEntry->powerType;
 
         // reset m_form if no aura
-        if (!player->HasAuraType(SPELL_AURA_MOD_SHAPESHIFT))
+        if (!player->HasShapeshiftAura())
             player->SetShapeshiftForm(FORM_NONE);
 
         player->SetFactionForRace(player->getRace());
@@ -281,14 +281,14 @@ public:
         if (caseName == "spells")
         {
             atLogin = AT_LOGIN_RESET_SPELLS;
-            sWorld->SendWorldText(LANG_RESETALL_SPELLS);
+            handler->SendWorldText(LANG_RESETALL_SPELLS);
             if (!handler->GetSession())
                 handler->SendSysMessage(LANG_RESETALL_SPELLS);
         }
         else if (caseName == "talents")
         {
             atLogin = AtLoginFlags(AT_LOGIN_RESET_TALENTS | AT_LOGIN_RESET_PET_TALENTS);
-            sWorld->SendWorldText(LANG_RESETALL_TALENTS);
+            handler->SendWorldText(LANG_RESETALL_TALENTS);
             if (!handler->GetSession())
                 handler->SendSysMessage(LANG_RESETALL_TALENTS);
         }
